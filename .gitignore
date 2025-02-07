@@ -1,0 +1,8 @@
+.env
+lorem.php
+/vendor/
+/node_modules/
+/src/uploads/*
+
+!/src/uploads/
+!/src/uploads/.gitkeep

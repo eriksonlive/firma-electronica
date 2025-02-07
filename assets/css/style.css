@@ -1,0 +1,45 @@
+/* Cada página renderizada tendrá posición relativa para que los campos se posicionen sobre ella */
+.pdf-page-container {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+/* Estilo básico para el campo de firma */
+.campo-firma {
+  position: absolute;
+  background-color: rgba(229, 231, 235, 0.8);
+  border: 1px dashed #4b5563;
+  cursor: grab;
+  clip-path: inset(-8px -8px 0px 0px);
+}
+
+.campo-firma .nombre-firmante,
+.campo-firma .email-firmante {
+  background-color: #3b82f6;
+  color: white;
+  font-size: 0.75rem;
+  padding: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+.campo-firma .btn-eliminar {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background-color: #ef4444;
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 50;
+}
+
+/* Toolbar superior para seleccionar el firmante */
+#toolbar {
+  margin-bottom: 1rem;
+}
