@@ -45,14 +45,15 @@ function cerrarFirmante() {
   document.getElementById('nuevo-firmante').classList.add('hidden');
 }
 
+/* ----------------------------
+   Función para subir el archivo PDF
+----------------------------- */
 async function uploadFile(event) {
   let file = event.target.files[0];
-  console.log(file);
   if (!file) return;
 
   let formData = new FormData();
   formData.append('pdf', file);
-
 
   try {
     let response = await fetch('upload', {
@@ -64,76 +65,105 @@ async function uploadFile(event) {
 
     if (result.success) {
       console.log('Archivo subido con éxito:', result.file_url);
-      sessionStorage.setItem('pdfUrl', result.file_url); // 🔹 Guardamos la URL subida
-      loadPdfFromUrl(result.file_url);
-      loadFiles();
+      sessionStorage.setItem('pdfUrl', result.file_url); // Guardamos la URL subida
+      loadPdfFromUrl(result.file_url); // Cargar y renderizar el PDF subido
+      loadFiles(); // Actualizar la lista de archivos
     } else {
       console.error('Error al subir el archivo:', result.error);
     }
   } catch (error) {
     console.error('Error en la petición de carga:', error);
+  } finally {
+    // Reinicia el input para que se dispare el evento change la próxima vez
+    event.target.value = '';
   }
 }
 
-// Configuración de PDF.js
+/* ----------------------------
+   Configuración de PDF.js
+----------------------------- */
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.9.179/pdf.worker.min.js';
 
-// Función para cargar el listado de archivos desde el servidor
+/* ----------------------------
+   Función para cargar la lista de archivos
+----------------------------- */
 async function loadFiles() {
   try {
-    // Se asume que existe un endpoint que retorna un JSON con un arreglo de nombres de archivos
+    // Se asume que el endpoint 'uploads' retorna un JSON con un arreglo de nombres de archivos
     const response = await fetch('uploads');
     const files = await response.json();
-    const fileListContainer = document.getElementById('file-list');
-    fileListContainer.innerHTML = '';
-
-    files.forEach((file) => {
-      const fileItem = document.createElement('div');
-      fileItem.className =
-        'flex justify-between items-center p-2 border rounded cursor-pointer hover:bg-gray-100';
-
-      // Nombre del archivo (click para cargarlo)
-      const fileName = document.createElement('span');
-      fileName.innerText = file;
-      fileName.className = 'flex-1 cursor-pointer';
-      fileName.addEventListener('click', () => selectFile(file));
-
-      // Botón de eliminar
-      const deleteButton = document.createElement('button');
-      deleteButton.innerText = 'Eliminar';
-      deleteButton.className = 'text-red-500 hover:text-red-700';
-      deleteButton.addEventListener('click', (event) => {
-        event.stopPropagation(); // Evitar que se active el evento de selección
-        deleteFile(file);
-      });
-
-      fileItem.appendChild(fileName);
-      fileItem.appendChild(deleteButton);
-      fileListContainer.appendChild(fileItem);
-    });
+    allFiles = files; // Guardamos los archivos globalmente
+    renderFileList(allFiles); // Renderizamos la lista completa
   } catch (error) {
     console.error('Error al cargar la lista de archivos:', error);
   }
 }
 
+/* ----------------------------
+   Función para renderizar la lista de archivos
+----------------------------- */
+function renderFileList(files) {
+  const fileListContainer = document.getElementById('file-list');
+  fileListContainer.innerHTML = '';
+
+  files.forEach((file) => {
+    const fileItem = document.createElement('div');
+    fileItem.className =
+      'flex justify-between items-center p-2 border rounded cursor-pointer hover:bg-gray-100';
+
+    // Elemento que muestra el nombre del archivo (clic para cargarlo)
+    const fileName = document.createElement('span');
+    fileName.innerText = file;
+    fileName.className = 'flex-1 cursor-pointer';
+    fileName.addEventListener('click', () => selectFile(file));
+
+    // Botón de eliminar
+    const deleteButton = document.createElement('button');
+    deleteButton.innerText = 'Eliminar';
+    deleteButton.className = 'text-red-500 hover:text-red-700';
+    deleteButton.addEventListener('click', (event) => {
+      event.stopPropagation(); // Evitar que se active el evento de selección
+      deleteFile(file);
+    });
+
+    fileItem.appendChild(fileName);
+    fileItem.appendChild(deleteButton);
+    fileListContainer.appendChild(fileItem);
+  });
+}
+
+/* ----------------------------
+   Función para filtrar archivos (buscador)
+----------------------------- */
 function searchFiles() {
   const searchTerm = document.getElementById('file-search').value.toLowerCase();
-  // Se filtra el arreglo de archivos usando includes (comparación sin mayúsculas/minúsculas)
   const filteredFiles = allFiles.filter((file) =>
     file.toLowerCase().includes(searchTerm)
   );
-  // Se renderiza la lista filtrada
   renderFileList(filteredFiles);
 }
+document.getElementById('file-search').addEventListener('input', searchFiles);
 
+/* ----------------------------
+   Función para seleccionar un archivo de la lista y cargarlo
+----------------------------- */
+function selectFile(fileName) {
+  // Suponemos que los archivos están en la carpeta 'uploads'
+  const url = 'uploads/' + fileName;
+  loadPdfFromUrl(url);
+}
+
+/* ----------------------------
+   Función para eliminar un archivo
+----------------------------- */
 async function deleteFile(fileName) {
   if (!confirm(`¿Seguro que deseas eliminar el archivo "${fileName}"?`)) {
     return;
   }
 
   try {
-    let response = await fetch(`delete_file`, {
+    let response = await fetch('delete_file', {
       method: 'DELETE',
       body: JSON.stringify({ file: fileName }),
       headers: {
@@ -154,9 +184,6 @@ async function deleteFile(fileName) {
   }
 }
 
-// Llama a loadFiles al cargar la página
-document.addEventListener('DOMContentLoaded', loadFiles);
-
 // Carga y renderiza el PDF desde el input
 document
   .getElementById('pdf-upload')
@@ -171,33 +198,53 @@ document
     }
   });
 
-// Función para cargar y renderizar un PDF dado su URL
+/* ----------------------------
+   Función para cargar y renderizar el PDF desde una URL
+----------------------------- */
 function loadPdfFromUrl(url) {
+  // Limpiar el contenedor para mostrar el nuevo PDF
+  const container = document.getElementById('pdf-container');
+  container.innerHTML = '';
+
   pdfjsLib
     .getDocument(url)
-    .promise.then((pdf) => {
-      renderPdf(null, pdf);
-      sessionStorage.setItem('pdfUrl', url); // 🔹 Guardamos la URL actualizada
+    .promise.then((pdfDoc) => {
+      // Por ejemplo, renderizamos solo la primera página
+      pdfDoc.getPage(1).then((page) => {
+        const scale = 1.5;
+        const viewport = page.getViewport({ scale });
+
+        // Creamos un nuevo canvas y lo agregamos al contenedor
+        let canvas = document.createElement('canvas');
+        canvas.id = 'pdf-canvas';
+        container.appendChild(canvas);
+
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+
+        const ctx = canvas.getContext('2d');
+        page.render({ canvasContext: ctx, viewport: viewport });
+      });
     })
-    .catch((error) =>
-      console.error('Error al cargar el PDF desde URL:', error)
-    );
+    .catch((error) => {
+      console.error('Error al cargar el PDF:', error);
+    });
 }
 
-// Función que renderiza el PDF; si se pasa data, se carga desde ArrayBuffer, de lo contrario usa el objeto pdf
+/* ----------------------------
+   Asignar el evento change al input file para subir archivos
+----------------------------- */
+// document.getElementById('pdf-upload').addEventListener('change', uploadFile);
+
+// Función para renderizar el PDF a partir de datos (ArrayBuffer) si fuera necesario
 function renderPdf(data, pdfObj) {
   let pdfContainer = document.getElementById('pdf-container');
   pdfContainer.innerHTML = ''; // Limpiar el contenedor
   let loadingTask;
   if (data) {
-    loadingTask = pdfjsLib.getDocument({
-      data,
-    });
+    loadingTask = pdfjsLib.getDocument({ data });
   } else if (pdfObj) {
-    // Si ya se tiene el objeto pdf, lo usamos directamente
-    loadingTask = {
-      promise: Promise.resolve(pdfObj),
-    };
+    loadingTask = { promise: Promise.resolve(pdfObj) };
   }
   loadingTask.promise
     .then((pdf) => {
@@ -208,55 +255,38 @@ function renderPdf(data, pdfObj) {
     .catch((error) => console.error('Error al renderizar el PDF:', error));
 }
 
-// Renderiza cada página del PDF
+// Función para renderizar una página del PDF (si deseas renderizar todas las páginas)
 function renderPage(pdf, pageNumber) {
   pdf.getPage(pageNumber).then((page) => {
-    let scale = 1.33;
-    let viewport = page.getViewport({
-      scale,
-    });
+    let scale = 1.33; // Ajusta el tamaño si es necesario
+    let viewport = page.getViewport({ scale });
+
+    // Crear contenedor para la página con número
     let pageContainer = document.createElement('div');
     pageContainer.classList.add('pdf-page-container');
 
-    // Etiqueta opcional con el número de página
-    let pageLabel = document.createElement('div');
-    pageLabel.className = 'text-xs text-gray-600 mb-1';
-    pageLabel.innerText = `Página ${pageNumber}`;
-    pageContainer.appendChild(pageLabel);
+    // Etiqueta con el número de página
+    let pageNumberLabel = document.createElement('div');
+    pageNumberLabel.classList.add('page-number');
+    pageNumberLabel.innerText = `Página ${pageNumber}`;
 
+    // Crear canvas para la página
     let canvas = document.createElement('canvas');
     canvas.width = viewport.width;
     canvas.height = viewport.height;
-    let context = canvas.getContext('2d');
 
-    let renderContext = {
-      canvasContext: context,
-      viewport: viewport,
-    };
+    let context = canvas.getContext('2d');
+    let renderContext = { canvasContext: context, viewport };
 
     page.render(renderContext);
+
+    pageContainer.appendChild(pageNumberLabel);
     pageContainer.appendChild(canvas);
-
     document.getElementById('pdf-container').appendChild(pageContainer);
-
-    // Permite agregar campos haciendo clic en la página
-    pageContainer.addEventListener('click', function (event) {
-      if (draggingSignature) {
-        draggingSignature = false;
-        return;
-      }
-      if (event.target.closest('.campo-firma')) return;
-      if (!currentFirmante) {
-        alert('Por favor, selecciona un firmante primero.');
-        return;
-      }
-      let rect = pageContainer.getBoundingClientRect();
-      let x = event.clientX - rect.left + pageContainer.scrollLeft;
-      let y = event.clientY - rect.top + pageContainer.scrollTop;
-      crearCampo(pageContainer, x, y, pageNumber);
-    });
   });
 }
+
+loadFiles();
 
 // Función para cargar un PDF al hacer clic sobre un archivo listado
 function selectFile(fileName) {
@@ -397,6 +427,8 @@ function eliminarCampo(elemento) {
 async function sendToServer() {
   // Se puede obtener la URL del PDF y los datos de cada campo
   let pdfUrl = sessionStorage.getItem('pdfUrl'); // 🔹 Obtener el PDF actual
+
+  console.log(pdfUrl);
   if (!pdfUrl) {
     alert('Por favor, selecciona o sube un archivo antes de enviarlo.');
     return;

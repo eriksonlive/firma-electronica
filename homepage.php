@@ -28,14 +28,17 @@
                     <option value="motrox@hotmail.it">Juan Pérez</option>
                     <option value="motrox@hotmail.it">María López</option>
                 </select>
-                <button onclick="agregarFirmante()" class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 mt-2">Agregar Firmante</button>
+                <button onclick="agregarFirmante()" class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600">Agregar Firmante</button>
             </div>
 
             <!-- Formulario oculto para agregar nuevo firmante -->
             <div id="nuevo-firmante" class="hidden my-4">
-                <input type="text" id="nombre-firmante" placeholder="Nombre del firmante" class="block w-full mb-2 border rounded p-2">
-                <input type="email" id="email-firmante" placeholder="Correo electrónico" class="block w-full mb-2 border rounded p-2">
-                <button onclick="guardarFirmante()" class="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600">Guardar Nuevo Firmante</button>
+                <div class="flex justify-between items-center space-x-4">
+                    <input type="text" id="nombre-firmante" placeholder="Nombre del firmante" class="block w-1/4 mb-2 border rounded p-2">
+                    <input type="email" id="email-firmante" placeholder="Correo electrónico" class="block w-1/4 mb-2 border rounded p-2">
+                    <button onclick="guardarFirmante()" class="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 w-1/4 mb-2">Guardar Nuevo Firmante</button>
+                    <button onclick="cerrarFirmante()" class="bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600 w-1/6 mb-2">Cerrar</button>
+                </div>
             </div>
 
             <!-- Contenedor para renderizar el PDF (con scroll) -->
@@ -52,6 +55,12 @@
         <!-- Columna derecha: Archivos cargados -->
         <div class="w-full md:w-1/3 bg-white p-6 rounded-lg shadow-md">
             <h2 class="text-xl font-semibold mb-4">Archivos cargados</h2>
+            <label>Buscar</label>
+            <input
+                type="text"
+                id="file-search"
+                placeholder="Buscar archivo..."
+                class="mb-4 p-2 border rounded w-full" />
             <div id="file-list" class="space-y-2">
                 <!-- Aquí se listarán los archivos de la carpeta uploads/ -->
             </div>
